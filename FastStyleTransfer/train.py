@@ -84,9 +84,14 @@ def train_step(content_image, style_image, extractor, transfer_model, opt):
 
 def train(content_image_path, style_image_path, model_save_path, extractor, model, opt):
     
-    # load model
+    # model 저장 폴더 생성
     if not os.path.exists(model_save_path):
         os.mkdir(model_save_path)
+    
+    # 학습 중간과정 결과 이미지 저장 폴더 생성
+    if not os.path.exists(model_save_path+'result'):
+        os.mkdir(model_save_path+'result')
+
         
     ckpt = tf.train.Checkpoint(step=tf.Variable(0), optimizer=opt, net=model)
     manager = tf.train.CheckpointManager(ckpt, './'+model_save_path, max_to_keep=3)
@@ -123,14 +128,15 @@ def train(content_image_path, style_image_path, model_save_path, extractor, mode
             
             ckpt.step.assign_add(BATCH_SIZE)    
             print('epoch : %d, iter : %4d, ' % (epoch, ckpt.step),'L_total : %g, L_content : %g, L_style : %g, L_tv : %g' % (L_total, L_content, L_style, L_tv))
-            if ckpt.step % 10 == 0:
-#                 print('epoch : %d, iter : %4d, ' % (epoch, ckpt.step),'L_total : %g, L_content : %g, L_style : %g, L_tv : %g' % (L_total, L_content, L_style, L_tv))
+            if ckpt.step % 1000 == 0:
                 save_path = manager.save()
                 print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
-                
-#             if ckpt.step % 2000 == 0:
-#                 # show test image
-#                 image = transfer_model(test_image)
+            if ckpt.step % 2000 == 0:
+                # save result image
+                with tf.device('/cpu:0'):
+                    image = transfer_model(test_image/255.)
+                    image = tensor_to_image(image)
+                    image.save('./'+model_save_path+'result/'+str(int(ckpt.step))+'.jpg')
                 
         # 남은거 처리
         content_image = load_batch_image((ckpt.step - epoch * coco_len), (ckpt.step - epoch_start * coco_len) - coco_len)
@@ -152,4 +158,5 @@ if __name__ == "__main__":
     extractor = StyleContentModel(style_layers, content_layers)
     transfer = TransformModel()
 
-    train('./content/female_knight.jpg', './style/wave.jpg', 'wave_model', extractor, transfer, opt)
+    # train(content image path, style image path, 저장할 모델 폴더 이름, Style과 Content feature를 뽑을 모델, 이미지 변환 모델, 최적화)
+    train('./content/female_knight.jpg', './style/la_muse.jpg', 'la_muse_models', extractor, transfer, opt)
