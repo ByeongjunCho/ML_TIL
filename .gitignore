@@ -6,6 +6,11 @@
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
 
+*.jpg
+*.data-00000-of-00002
+*.data-00001-of-00002
+*.index
+
 train2014/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*

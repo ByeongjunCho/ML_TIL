@@ -118,11 +118,12 @@ def train(content_image_path, style_image_path, model_save_path, extractor, mode
     
     # Load train imageset
     coco_len = len(os.listdir('./train2014'))
+    coco_len -= coco_len % BATCH_SIZE
     epoch_start = ckpt.step // coco_len
     
     
     for epoch in range(epoch_start, EPOCHS):
-        while (ckpt.step - epoch_start * coco_len) + BATCH_SIZE < coco_len:
+        while (ckpt.step - epoch * coco_len) + BATCH_SIZE <= coco_len:
             content_image = load_batch_image((ckpt.step - epoch * coco_len), BATCH_SIZE)
             L_total, L_content, L_style, L_tv = train_step(content_image, style_image, extractor, transfer_model, opt)
             
@@ -139,13 +140,13 @@ def train(content_image_path, style_image_path, model_save_path, extractor, mode
                     image.save('./'+model_save_path+'result/'+str(int(ckpt.step))+'.jpg')
                 
         # 남은거 처리
-        content_image = load_batch_image((ckpt.step - epoch * coco_len), (ckpt.step - epoch_start * coco_len) - coco_len)
-        L_total, L_content, L_style, L_tv = train_step(content_image, style_image, extractor, transfer_model, opt)
-        ckpt.step.assign_add((ckpt.step - epoch_start * coco_len) - coco_len)
+        # content_image = load_batch_image((ckpt.step - epoch * coco_len), coco_len - (ckpt.step - epoch_start * coco_len))
+        # L_total, L_content, L_style, L_tv = train_step(content_image, style_image, extractor, transfer_model, opt)
+        # ckpt.step.assign_add(coco_len - (ckpt.step - epoch_start * coco_len))
         
-        print('epoch : %d, iter : %4d, ' % (epoch, ckpt.step),'L_total : %g, L_content : %g, L_style : %g, L_tv : %g' % (L_total, L_content, L_style, L_tv))
-        save_path = ckpt.save()
-        print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+        # print('epoch : %d, iter : %4d, ' % (epoch, ckpt.step),'L_total : %g, L_content : %g, L_style : %g, L_tv : %g' % (L_total, L_content, L_style, L_tv))
+        # save_path = manager.save()
+        # print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
 
 
 if __name__ == "__main__":
@@ -156,7 +157,7 @@ if __name__ == "__main__":
 
     # model
     extractor = StyleContentModel(style_layers, content_layers)
-    transfer = TransformModel()
+    transfer = TransformModel() 
 
     # train(content image path, style image path, 저장할 모델 폴더 이름, Style과 Content feature를 뽑을 모델, 이미지 변환 모델, 최적화)
-    train('./content/female_knight.jpg', './style/la_muse.jpg', 'la_muse_models', extractor, transfer, opt)
+    train('./content/female_knight.jpg', './style/the_shipwreck_of_the_minotaur.jpg', 'the_shipwreck_of_the_minotaur', extractor, transfer, opt)
